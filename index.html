@@ -3,70 +3,100 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LOL 解禁 / 申述时间管理</title>
+  <title>英雄联盟禁令管理系统</title>
   <link rel="icon" href="https://static.wikia.nocookie.net/leagueoflegends/images/6/6c/League_of_Legends_Icon.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background-color: #010a13; color: #f0e6d2; font-family: "Microsoft YaHei", sans-serif; }
+    body { background-color: #010a13; color: #f0e6d2; font-family: "Microsoft YaHei", sans-serif; overflow-x: hidden; }
     body::before {
       content: ""; position: fixed; inset: 0;
       background: url("https://p6.qhimg.com/t01666e8536ec7a38f3.jpg") center / cover no-repeat fixed;
       filter: brightness(0.3); z-index: -2;
     }
+    /* 海克斯科技质感卡片 */
     .hextech-card { background: rgba(30, 35, 40, 0.9); border: 1px solid #463714; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
     .btn-lol { background: linear-gradient(to bottom, #1e2328, #111111); border: 1px solid #c8aa6e; color: #c8aa6e; transition: all 0.2s; cursor: pointer; }
-    .btn-lol:hover { background: #c89b3c; color: #010a13; }
+    .btn-lol:hover { background: #c89b3c; color: #010a13; box-shadow: 0 0 15px #c89b3c; }
     input, select { background: rgba(10, 20, 30, 0.9) !important; border: 1px solid #463714 !important; color: #f0e6d2 !important; }
+    
+    /* 警告呼吸灯特效 */
     @keyframes goldPulse { 0%, 100% { border-color: #c8aa6e; box-shadow: 0 0 5px #c8aa6e; } 50% { border-color: #f0e6d2; box-shadow: 0 0 15px #c8aa6e; } }
     .status-active { animation: goldPulse 2s infinite; }
+
+    /* 滚动文字样式 */
+    .scroll-container {
+      background: rgba(200, 170, 110, 0.1);
+      border-top: 1px solid #463714;
+      border-bottom: 1px solid #463714;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .scroll-text {
+      display: inline-block;
+      padding-left: 100%;
+      animation: marquee 20s linear infinite;
+      color: #c8aa6e;
+      font-size: 0.875rem;
+      letter-spacing: 2px;
+    }
+    @keyframes marquee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
+    }
   </style>
 </head>
 <body class="min-h-screen">
 
+  <div class="scroll-container py-2 mb-6">
+    <div class="scroll-text">
+      🛡️ 抵制外挂，共建公平竞技环境。 ⚖️ 虚假的胜利毫无意义，真实的竞技才是荣耀。 ⚔️ 凭实力赢下的比赛，才是召唤师真正的尊严。 🚫 莫让脚本抹黑你的操作，莫让封号终结你的英雄路！
+    </div>
+  </div>
+
   <div class="max-w-5xl mx-auto p-6">
     <header class="text-center mb-10">
-      <h1 class="text-3xl font-bold mb-2 tracking-[0.2em] text-[#c8aa6e]">召唤师处罚管理系统</h1>
-      <div class="h-[2px] w-32 bg-gradient-to-r from-transparent via-[#c8aa6e] to-transparent mx-auto mb-2"></div>
-      <p class="text-[#a09b8c] text-sm italic">本地安全存储版 · 数据永不上传</p>
+      <h1 class="text-4xl font-bold mb-2 tracking-[0.3em] text-[#c8aa6e] uppercase">英雄联盟禁令管理系统</h1>
+      <div class="h-[2px] w-48 bg-gradient-to-r from-transparent via-[#c8aa6e] to-transparent mx-auto mb-2"></div>
+      <p class="text-[#a09b8c] text-sm italic italic">JUSTICE WILL BE SERVED</p>
     </header>
 
     <div class="hextech-card p-6 rounded-sm mb-8 border-b-2 border-b-[#c8aa6e]">
       <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div class="flex flex-col">
-          <label class="text-xs text-[#c8aa6e] mb-1">召唤师账号</label>
-          <input id="account" placeholder="输入名称" class="p-2 rounded-sm" />
+          <label class="text-xs text-[#c8aa6e] mb-1 uppercase font-bold">召唤师账号</label>
+          <input id="account" placeholder="召唤师 ID" class="p-2 rounded-sm" />
         </div>
         <div class="flex flex-col">
-          <label class="text-xs text-[#c8aa6e] mb-1">记录类型</label>
+          <label class="text-xs text-[#c8aa6e] mb-1 uppercase font-bold">处罚类别</label>
           <select id="type" class="p-2 rounded-sm">
             <option value="解禁">账号解禁</option>
             <option value="申述">发起申述</option>
           </select>
         </div>
         <div class="flex flex-col">
-          <label class="text-xs text-[#c8aa6e] mb-1">日期</label>
+          <label class="text-xs text-[#c8aa6e] mb-1 uppercase font-bold">解禁日期</label>
           <input id="date" type="date" class="p-2 rounded-sm" />
         </div>
         <div class="flex flex-col">
-          <label class="text-xs text-[#c8aa6e] mb-1">具体时间</label>
+          <label class="text-xs text-[#c8aa6e] mb-1 uppercase font-bold">具体时间</label>
           <input id="time" type="text" placeholder="16:30" maxlength="5" oninput="this.value = this.value.replace(/[^\d]/g, '').replace(/(\d{2})(?=\d)/, '$1:')" class="p-2 rounded-sm font-mono text-center" />
         </div>
         <div class="flex items-end">
-          <button onclick="addRecord()" class="btn-lol w-full py-2 font-bold text-sm">保存记录</button>
+          <button onclick="addRecord()" class="btn-lol w-full py-2 font-bold text-sm">录入系统</button>
         </div>
       </div>
 
-      <div class="flex gap-6 mt-6 pt-4 border-t border-[#463714] text-[11px]">
-        <button onclick="exportData()" class="text-[#c8aa6e] hover:text-white transition-colors">📥 导出备份 (下载 JSON 文件)</button>
+      <div class="flex gap-6 mt-6 pt-4 border-t border-[#463714] text-[10px] uppercase tracking-wider">
+        <button onclick="exportData()" class="text-[#c8aa6e] hover:text-white transition-colors">📥 下载本地备份 (JSON)</button>
         <label class="text-[#c8aa6e] hover:text-white cursor-pointer transition-colors">
-          📤 导入备份 (上传 JSON 文件) <input type="file" id="importFile" class="hidden" onchange="importData(this)">
+          📤 上传历史备份 <input type="file" id="importFile" class="hidden" onchange="importData(this)">
         </label>
-        <span class="text-gray-600 ml-auto">数据仅保存在当前浏览器，请定期备份</span>
+        <span class="text-gray-600 ml-auto italic">数据采用本地浏览器隔离存储</span>
       </div>
     </div>
 
     <div class="relative mb-6">
-      <input id="search" placeholder="🔍 搜索召唤师..." oninput="render()" class="w-full p-3 rounded-sm italic text-sm" />
+      <input id="search" placeholder="🔍 检索目标召唤师记录..." oninput="render()" class="w-full p-3 rounded-sm italic text-sm" />
     </div>
 
     <div id="list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
@@ -81,20 +111,18 @@ function format24h(isoStr) {
     return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-// 导出 JSON
 function exportData() {
-    if(records.length === 0) return alert('没有数据可以导出');
+    if(records.length === 0) return alert('数据库内暂无记录');
     const dataStr = JSON.stringify(records, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `LOL_数据备份_${new Date().toLocaleDateString()}.json`;
+    a.download = `LOL_BAN_REPORT_${new Date().toLocaleDateString()}.json`;
     a.click();
     URL.revokeObjectURL(url);
 }
 
-// 导入 JSON
 function importData(input) {
     const file = input.files[0];
     if (!file) return;
@@ -103,15 +131,15 @@ function importData(input) {
         try {
             const imported = JSON.parse(e.target.result);
             if (Array.isArray(imported)) {
-                if(confirm('导入将覆盖当前所有数据，确定吗？')) {
+                if(confirm('确认导入？这将会覆盖当前记录列表')) {
                     records = imported;
                     localStorage.setItem('lolRecords', JSON.stringify(records));
                     render();
-                    alert('导入成功！');
+                    alert('记录库已更新');
                 }
             }
         } catch (err) {
-            alert('文件格式错误！');
+            alert('非法文件格式');
         }
     };
     reader.readAsText(file);
@@ -123,7 +151,7 @@ function addRecord(){
   const date = document.getElementById('date').value;
   let time = document.getElementById('time').value;
 
-  if(!account || !date || !time) return alert('请填全信息');
+  if(!account || !date || !time) return alert('系统提示：请完善目标处罚信息');
   
   const data = { account, type, datetime: `${date}T${time}` };
 
@@ -131,4 +159,82 @@ function addRecord(){
     records[editIndex] = data;
     editIndex = null;
   }else{
-    records.push
+    records.push(data);
+  }
+  
+  localStorage.setItem('lolRecords', JSON.stringify(records));
+  render();
+  
+  document.getElementById('account').value = '';
+  document.getElementById('date').value = '';
+  document.getElementById('time').value = '';
+}
+
+function del(i){
+  if(confirm('确定要从系统中抹除此项记录吗？')) {
+    records.splice(i,1);
+    localStorage.setItem('lolRecords', JSON.stringify(records));
+    render();
+  }
+}
+
+function edit(i){
+  const r = records[i];
+  const dt = r.datetime.split('T');
+  document.getElementById('account').value = r.account;
+  document.getElementById('type').value = r.type;
+  document.getElementById('date').value = dt[0];
+  document.getElementById('time').value = dt[1];
+  editIndex = i;
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function render(){
+  const q = document.getElementById('search').value.toLowerCase();
+  const now = Date.now();
+  const box = document.getElementById('list');
+  box.innerHTML='';
+
+  records.filter(r=>r.account.toLowerCase().includes(q))
+    .sort((a,b)=>new Date(a.datetime)-new Date(b.datetime))
+    .forEach((r,i)=>{
+      const targetTime = new Date(r.datetime).getTime();
+      const diff = targetTime - now;
+      const displayDateTime = format24h(r.datetime);
+      const days = Math.floor(diff/86400000);
+      const h = Math.floor(diff%86400000/3600000);
+      const m = Math.floor(diff%3600000/60000);
+      const s = Math.floor(diff%60000/1000);
+      const isWarning = diff < 3 * 86400000 && diff > 0;
+      const isExpired = diff <= 0;
+
+      box.innerHTML += `
+      <div class="p-5 hextech-card relative overflow-hidden ${isWarning ? 'status-active' : ''}">
+        <div class="flex justify-between items-start relative z-10">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="px-2 py-0.5 bg-[#c8aa6e] text-black text-[10px] font-bold rounded-sm tracking-tighter">${r.type}</span>
+              <span class="text-[#f0e6d2] font-bold text-lg">${r.account}</span>
+            </div>
+            <div class="text-[11px] text-[#a09b8c] mb-3 font-mono">预定时刻：${displayDateTime}</div>
+            <div class="flex flex-col">
+              <span class="text-xs text-[#c8aa6e] font-bold mb-1 tracking-widest">剩余刑期</span>
+              <span class="text-xl font-bold font-mono ${isExpired ? 'text-green-500' : 'text-[#f0e6d2]'}">
+                ${isExpired ? '✅ 禁令解除' : `${days}天 ${h}时 ${m}分 ${s}秒`}
+              </span>
+            </div>
+          </div>
+          <div class="flex flex-col space-y-2">
+            <button onclick="edit(${i})" class="px-3 py-1 text-[11px] border border-[#c8aa6e] text-[#c8aa6e] hover:bg-[#c8aa6e] hover:text-black transition-all">修改</button>
+            <button onclick="del(${i})" class="px-3 py-1 text-[11px] border border-red-900 text-red-500 hover:bg-red-900 hover:text-white transition-all">移除</button>
+          </div>
+        </div>
+      </div>`;
+    });
+}
+
+setInterval(render, 1000);
+render();
+</script>
+</body>
+</html>
