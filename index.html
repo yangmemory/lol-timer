@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>英雄联盟禁令管理系统</title>
-  <link rel="icon" href="https://static.wikia.nocookie.net/leagueoflegends/images/6/6c/League_of_Legends_Icon.png" />
+  <link rel="icon" href="https://static.wikia.nocookie.net/leagueoflegends/images/6/6c/League_of_Legends_Icon.png" type="image/png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body { background-color: #010a13; color: #f0e6d2; font-family: "Microsoft YaHei", sans-serif; overflow-x: hidden; }
@@ -13,36 +13,29 @@
       background: url("https://p6.qhimg.com/t01666e8536ec7a38f3.jpg") center / cover no-repeat fixed;
       filter: brightness(0.3); z-index: -2;
     }
-    /* 海克斯科技质感卡片 */
     .hextech-card { background: rgba(30, 35, 40, 0.9); border: 1px solid #463714; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
     .btn-lol { background: linear-gradient(to bottom, #1e2328, #111111); border: 1px solid #c8aa6e; color: #c8aa6e; transition: all 0.2s; cursor: pointer; }
     .btn-lol:hover { background: #c89b3c; color: #010a13; box-shadow: 0 0 15px #c89b3c; }
-    input, select { background: rgba(10, 20, 30, 0.9) !important; border: 1px solid #463714 !important; color: #f0e6d2 !important; }
     
-    /* 警告呼吸灯特效 */
+    /* 统一输入框样式 */
+    input, select { background: rgba(10, 20, 30, 0.9) !important; border: 1px solid #463714 !important; color: #f0e6d2 !important; height: 42px; }
+    
+    /* 针对日期选择器的特殊优化 */
+    .date-input-container { position: relative; }
+    input[type="date"] { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 35px; }
+    /* 隐藏原生的丑陋图标，用我们的金色图标代替 */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      position: absolute; right: 8px; top: 12px;
+      cursor: pointer; filter: invert(72%) sepia(15%) saturate(848%) hue-rotate(1deg) brightness(95%) contrast(88%);
+      transform: scale(1.3);
+    }
+
     @keyframes goldPulse { 0%, 100% { border-color: #c8aa6e; box-shadow: 0 0 5px #c8aa6e; } 50% { border-color: #f0e6d2; box-shadow: 0 0 15px #c8aa6e; } }
     .status-active { animation: goldPulse 2s infinite; }
 
-    /* 滚动文字样式 */
-    .scroll-container {
-      background: rgba(200, 170, 110, 0.1);
-      border-top: 1px solid #463714;
-      border-bottom: 1px solid #463714;
-      overflow: hidden;
-      white-space: nowrap;
-    }
-    .scroll-text {
-      display: inline-block;
-      padding-left: 100%;
-      animation: marquee 20s linear infinite;
-      color: #c8aa6e;
-      font-size: 0.875rem;
-      letter-spacing: 2px;
-    }
-    @keyframes marquee {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-100%); }
-    }
+    .scroll-container { background: rgba(200, 170, 110, 0.1); border-top: 1px solid #463714; border-bottom: 1px solid #463714; overflow: hidden; white-space: nowrap; }
+    .scroll-text { display: inline-block; padding-left: 100%; animation: marquee 25s linear infinite; color: #c8aa6e; font-size: 0.875rem; letter-spacing: 2px; }
+    @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
   </style>
 </head>
 <body class="min-h-screen">
@@ -57,29 +50,31 @@
     <header class="text-center mb-10">
       <h1 class="text-4xl font-bold mb-2 tracking-[0.3em] text-[#c8aa6e] uppercase">英雄联盟禁令管理系统</h1>
       <div class="h-[2px] w-48 bg-gradient-to-r from-transparent via-[#c8aa6e] to-transparent mx-auto mb-2"></div>
-      <p class="text-[#a09b8c] text-sm italic italic">JUSTICE WILL BE SERVED</p>
+      <p class="text-[#a09b8c] text-sm italic">JUSTICE WILL BE SERVED</p>
     </header>
 
     <div class="hextech-card p-6 rounded-sm mb-8 border-b-2 border-b-[#c8aa6e]">
       <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div class="flex flex-col">
           <label class="text-xs text-[#c8aa6e] mb-1 uppercase font-bold">召唤师账号</label>
-          <input id="account" placeholder="召唤师 ID" class="p-2 rounded-sm" />
+          <input id="account" placeholder="召唤师 ID" class="p-2 rounded-sm w-full" />
         </div>
         <div class="flex flex-col">
           <label class="text-xs text-[#c8aa6e] mb-1 uppercase font-bold">处罚类别</label>
-          <select id="type" class="p-2 rounded-sm">
+          <select id="type" class="p-2 rounded-sm w-full">
             <option value="解禁">账号解禁</option>
             <option value="申述">发起申述</option>
           </select>
         </div>
         <div class="flex flex-col">
           <label class="text-xs text-[#c8aa6e] mb-1 uppercase font-bold">解禁日期</label>
-          <input id="date" type="date" class="p-2 rounded-sm" />
+          <div class="date-input-container">
+            <input id="date" type="date" class="p-2 rounded-sm w-full" />
+          </div>
         </div>
         <div class="flex flex-col">
           <label class="text-xs text-[#c8aa6e] mb-1 uppercase font-bold">具体时间</label>
-          <input id="time" type="text" placeholder="16:30" maxlength="5" oninput="this.value = this.value.replace(/[^\d]/g, '').replace(/(\d{2})(?=\d)/, '$1:')" class="p-2 rounded-sm font-mono text-center" />
+          <input id="time" type="text" placeholder="16:30" maxlength="5" oninput="this.value = this.value.replace(/[^\d]/g, '').replace(/(\d{2})(?=\d)/, '$1:')" class="p-2 rounded-sm font-mono text-center w-full" />
         </div>
         <div class="flex items-end">
           <button onclick="addRecord()" class="btn-lol w-full py-2 font-bold text-sm">录入系统</button>
@@ -91,7 +86,7 @@
         <label class="text-[#c8aa6e] hover:text-white cursor-pointer transition-colors">
           📤 上传历史备份 <input type="file" id="importFile" class="hidden" onchange="importData(this)">
         </label>
-        <span class="text-gray-600 ml-auto italic">数据采用本地浏览器隔离存储</span>
+        <span class="text-gray-600 ml-auto italic text-[9px]">数据采用本地浏览器隔离存储</span>
       </div>
     </div>
 
@@ -232,7 +227,6 @@ function render(){
       </div>`;
     });
 }
-
 setInterval(render, 1000);
 render();
 </script>
