@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>LOL 解禁 / 申述时间查询</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+body {
+  background: #0f172a;
+  color: #e5e7eb;
+  font-family: Arial, sans-serif;
+  padding: 20px;
+}
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.container {
+  max-width: 1000px;
+  margin: auto;
+}
+input, select, button {
+  padding: 8px;
+  margin: 5px;
+  border-radius: 6px;
+  border: none;
+}
+button {
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+}
+button.delete {
+  background: #dc2626;
+}
+input, select {
+  background: #1e293b;
+  color: #e5e7eb;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+th, td {
+  padding: 10px;
+  border-bottom: 1px solid #334155;
+  text-align: center;
+}
+tr.danger {
+  background: rgba(220,38,38,0.25);
+}
+.search {
+  width: 100%;
+  margin-top: 10px;
+}
+.countdown {
+  font-weight: bold;
+  color: #facc15;
+}
+</style>
+</head>
+
+<body>
+<h1>🎮 LOL 解禁 / 申述时间管理</h1>
+<div class="container">
+
+<!-- 添加表单 -->
+<div>
+  <input id="name" placeholder="账号 / 昵称" />
+  <input id="date" type="date" />
+  <select id="type">
+    <option value="解禁">解禁</option>
+    <option value="申述">申述</option>
+  </select>
+  <button onclick="addRecord()">添加记录</button>
+</div>
+
+<!-- 搜索 -->
+<input class="search" id="search" placeholder="🔍 搜索账号或昵称" oninput="render()" />
+
+<!-- 表格 -->
+<table>
+  <thead>
+    <tr>
+      <th>账号 / 昵称</th>
+      <th>类型</th>
+      <th>日期</th>
+      <th>倒计时</th>
+      <th>操作</th>
+    </tr>
+  </thead>
+  <tbody id="list"></tbody>
+</table>
+
+</div>
+
+<script>
+const STORAGE_KEY = "lol_records";
+
+let records = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [
+  { name: "204668332", date: "2026-01-08", type: "解禁" },
+  { name: "3479066850", date: "2026-01-19", type: "解禁" },
+  { name: "Ryan(香港)", date: "2026-01-19", type: "解禁" },
+  { name: "1933888688", date: "2028-07-17", type: "解禁" },
+  { name: "3368632", date: "2026-04-19", type: "申述" },
+  { name: "904122394", date: "2026-04-19", type: "申述" },
+  { name: "Ryan", date: "2026-03-26", type: "申述" },
+  { name: "美丽槟城", date: "2026-04-14", type: "申述" }
+];
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
+
+function addRecord() {
+  const name = document.getElementById("name").value.trim();
+  const date = document.getElementById("date").value;
+  const type = document.getElementById("type").value;
+  if (!name || !date) return alert("请填写完整");
+  records.push({ name, date, type });
+  save();
+  render();
+}
+
+function removeRecord(index) {
+  if (!confirm("确定删除这条记录？")) return;
+  records.splice(index, 1);
+  save();
+  render();
+}
+
+function countdown(date) {
+  const now = new Date();
+  const target = new Date(date);
+  const diff = target - now;
+  if (diff <= 0) return "已到期";
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  return `${days}天 ${hours}小时`;
+}
+
+function render() {
+  const keyword = document.getElementById("search").value.toLowerCase();
+  const tbody = document.getElementById("list");
+  tbody.innerHTML = "";
+
+  records.forEach((r, i) => {
+    if (!r.name.toLowerCase().includes(keyword)) return;
+
+    const diffDays = (new Date(r.date) - new Date()) / 86400000;
+    const tr = document.createElement("tr");
+    if (diffDays <= 7 && diffDays > 0) tr.classList.add("danger");
+
+    tr.innerHTML = `
+      <td>${r.name}</td>
+      <td>${r.type}</td>
+      <td>${r.date}</td>
+      <td class="countdown">${countdown(r.date)}</td>
+      <td><button class="delete" onclick="removeRecord(${i})">删除</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+render();
+setInterval(render, 60000);
+</script>
+</body>
+</html>
