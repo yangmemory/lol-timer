@@ -22,7 +22,6 @@
     
     input, select { background: rgba(10, 20, 30, 0.9) !important; border: 1px solid #463714 !important; color: #f0e6d2 !important; height: 42px; }
     
-    /* 日期选择器：强制显示金色日历图标并放大点击区域 */
     input[type="date"]::-webkit-calendar-picker-indicator {
       cursor: pointer; 
       filter: invert(72%) sepia(15%) saturate(848%) hue-rotate(1deg) brightness(95%) contrast(88%);
@@ -33,7 +32,6 @@
     @keyframes goldPulse { 0%, 100% { border-color: #c8aa6e; box-shadow: 0 0 5px #c8aa6e; } 50% { border-color: #f0e6d2; box-shadow: 0 0 15px #c8aa6e; } }
     .status-active { animation: goldPulse 2s infinite; }
 
-    /* 滚动文字样式 */
     .scroll-container { background: rgba(200, 170, 110, 0.1); border-top: 1px solid #463714; border-bottom: 1px solid #463714; overflow: hidden; white-space: nowrap; }
     .scroll-text { display: inline-block; padding-left: 100%; animation: marquee 25s linear infinite; color: #c8aa6e; font-size: 0.875rem; letter-spacing: 2px; }
     @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
@@ -51,7 +49,7 @@
     <header class="text-center mb-10">
       <h1 class="text-4xl font-bold mb-2 tracking-[0.3em] text-[#c8aa6e] uppercase">英雄联盟禁令管理系统</h1>
       <div class="h-[2px] w-48 bg-gradient-to-r from-transparent via-[#c8aa6e] to-transparent mx-auto mb-2"></div>
-      <p class="text-[#a09b8c] text-sm italic">JUSTICE WILL BE SERVED</p>
+      <p class="text-[#a09b8c] text-sm italic text-center">JUSTICE WILL BE SERVED</p>
     </header>
 
     <div class="hextech-card p-6 rounded-sm mb-8 border-b-2 border-b-[#c8aa6e]">
@@ -68,11 +66,11 @@
           </select>
         </div>
         <div class="flex flex-col">
-          <label class="text-xs text-[#c8aa6e] mb-1 uppercase font-bold text-center">📅 点击选择解禁日期</label>
+          <label class="text-xs text-[#c8aa6e] mb-1 uppercase font-bold text-center">📅 选择日期</label>
           <input id="date" type="date" class="p-2 rounded-sm w-full cursor-pointer" />
         </div>
         <div class="flex flex-col">
-          <label class="text-xs text-[#c8aa6e] mb-1 uppercase font-bold">具体时间</label>
+          <label class="text-xs text-[#c8aa6e] mb-1 uppercase font-bold">具体时间 (可选)</label>
           <input id="time" type="text" placeholder="16:30" maxlength="5" oninput="this.value = this.value.replace(/[^\d]/g, '').replace(/(\d{2})(?=\d)/, '$1:')" class="p-2 rounded-sm font-mono text-center w-full" />
         </div>
         <div class="flex items-end">
@@ -102,7 +100,9 @@ let editIndex = null;
 
 function format24h(isoStr) {
     const d = new Date(isoStr);
-    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const hour = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${hour}:${min}`;
 }
 
 function exportData() {
@@ -145,8 +145,17 @@ function addRecord(){
   const date = document.getElementById('date').value;
   let time = document.getElementById('time').value;
 
-  if(!account || !date || !time) return alert('系统提示：请完善目标处罚信息');
-  
+  // 基础校验
+  if(!account || !date) return alert('系统提示：账号和日期为必填项');
+
+  // 如果是“解禁”，则必须填写时间
+  if(type === '解禁' && !time) {
+      return alert('录入解禁记录时，必须填写具体时间（如 16:30）');
+  }
+
+  // 如果用户没填时间（且是申述），默认 00:00
+  if(!time) time = "00:00";
+
   const data = { account, type, datetime: `${date}T${time}` };
 
   if(editIndex !== null){
@@ -178,7 +187,7 @@ function edit(i){
   document.getElementById('account').value = r.account;
   document.getElementById('type').value = r.type;
   document.getElementById('date').value = dt[0];
-  document.getElementById('time').value = dt[1];
+  document.getElementById('time').value = dt[1] === "00:00" ? "" : dt[1];
   editIndex = i;
   window.scrollTo({top: 0, behavior: 'smooth'});
 }
@@ -210,11 +219,11 @@ function render(){
               <span class="px-2 py-0.5 bg-[#c8aa6e] text-black text-[10px] font-bold rounded-sm tracking-tighter">${r.type}</span>
               <span class="text-[#f0e6d2] font-bold text-lg">${r.account}</span>
             </div>
-            <div class="text-[11px] text-[#a09b8c] mb-3 font-mono">预定时刻：${displayDateTime}</div>
+            <div class="text-[11px] text-[#a09b8c] mb-3 font-mono">日期时刻：${displayDateTime}</div>
             <div class="flex flex-col">
-              <span class="text-xs text-[#c8aa6e] font-bold mb-1 tracking-widest">剩余刑期</span>
+              <span class="text-xs text-[#c8aa6e] font-bold mb-1 tracking-widest">状态详情</span>
               <span class="text-xl font-bold font-mono ${isExpired ? 'text-green-500' : 'text-[#f0e6d2]'}">
-                ${isExpired ? '✅ 禁令解除' : `${days}天 ${h}时 ${m}分 ${s}秒`}
+                ${isExpired ? '✅ 流程结束' : `${days}天 ${h}时 ${m}分 ${s}秒`}
               </span>
             </div>
           </div>
