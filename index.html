@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>英雄聯盟禁令管理系統 | LOL Ban Manager</title>
+  
+  <link rel="icon" href="https://raw.githubusercontent.com/yangmemory/lol-timer/main/lol.ico" type="image/x-icon" />
+  <link rel="shortcut icon" href="https://raw.githubusercontent.com/yangmemory/lol-timer/main/lol.ico" type="image/x-icon" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Noto+Serif+SC:wght@900&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root { --lol-gold: #c89b3c; --lol-blue: #010a13; --lol-border: #463714; --lol-red: #ff4655; }
+    body { background-color: #010a13; color: #f0e6d2; font-family: "Microsoft YaHei", sans-serif; overflow-x: hidden; }
+    body::before {
+      content: ""; position: fixed; inset: 0;
+      background: url("https://p6.qhimg.com/t01666e8536ec7a38f3.jpg") center / cover no-repeat fixed;
+      filter: brightness(0.2); z-index: -2;
+    }
+    .lol-special-font { font-family: 'Noto Serif SC', 'Cinzel', serif; }
+    .hextech-card { background: rgba(1, 10, 19, 0.95); border: 1px solid var(--lol-border); box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+    
+    .btn-play-style {
+      background: linear-gradient(to bottom, #c89b3c 0%, #785a28 100%);
+      border: 1px solid #010a13; box-shadow: inset 0 0 1px 1px rgba(255,255,255,0.3);
+      color: #010a13; font-weight: 900; transition: all 0.1s; cursor: pointer;
+    }
+    .btn-play-style:hover {
+      background: linear-gradient(to bottom, #e1ad42 0%, #c89b3c 100%);
+      box-shadow: inset 0 0 1px 1px rgba(255,255,255,0.4), 0 0 15px rgba(200, 155, 60, 0.5);
+    }
+    .btn-danger-style { background: rgba(153, 45, 34, 0.1); border: 1px solid #992d22; color: #992d22; font-weight: 900; cursor: pointer; }
+
+    .lol-timer-red {
+      color: var(--lol-red);
+      text-shadow: 0 0 12px rgba(255, 70, 85, 0.8);
+      font-family: 'Cinzel', 'Courier New', Courier, monospace;
+    }
+
+    @keyframes warn-blink {
+      0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px var(--lol-red)); }
+      50% { opacity: 0.6; filter: drop-shadow(0 0 2px var(--lol-red)); }
+    }
+    .warn-icon-red { color: var(--lol-red); display: inline-block; margin-right: 8px; animation: warn-blink 1s infinite; font-weight: bold; }
+
+    .input-group { position: relative; display: flex; align-items: center; background: rgba(0,0,0,0.5); border: 1px solid var(--lol-border); height: 52px; }
+    input { background: transparent !important; border: none !important; color: #f0e6d2 !important; height: 100%; width: 100%; text-align: center; font-weight: bold; outline: none; }
+    
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(72%) sepia(15%) saturate(848%) hue-rotate(1deg) brightness(95%) contrast(88%);
+      cursor: pointer; position: absolute; right: 12px; z-index: 20;
+    }
+
+    /* 語言切換懸浮球 */
+    #lang-menu-btn {
+      position: fixed; top: 130px; right: 1.5rem; z-index: 100;
+      width: 46px; height: 46px; border-radius: 50%;
+      background: rgba(1, 10, 19, 0.9); border: 2px solid var(--lol-gold);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; box-shadow: 0 0 15px rgba(200, 155, 60, 0.4);
+      transition: all 0.3s;
+    }
+    #lang-menu-btn:hover { transform: rotate(45deg); }
+
+    #lang-panel {
+      position: fixed; top: 185px; right: 1.5rem; z-index: 99;
+      background: rgba(1, 10, 19, 0.98); border: 1.5px solid var(--lol-border);
+      padding: 5px 0; border-radius: 4px; display: none;
+      box-shadow: -5px 5px 20px rgba(0,0,0,0.8); min-width: 120px;
+    }
+    .lang-item {
+      padding: 12px 20px; cursor: pointer; color: var(--lol-gold);
+      font-weight: bold; font-size: 0.9rem; text-align: center;
+      border-bottom: 1px solid rgba(74, 55, 20, 0.3); transition: all 0.2s;
+    }
+    .lang-item:last-child { border-bottom: none; }
+    .lang-item:hover { background: rgba(200, 155, 60, 0.15); color: #f0e6d2; }
+    .lang-item.active { background: var(--lol-gold); color: var(--lol-blue); }
+
+    /* 滾動標語優化 */
+    .scroll-container { 
+      background: rgba(30, 35, 40, 0.9); 
+      border-bottom: 1px solid var(--lol-border); 
+      overflow: hidden; 
+      white-space: nowrap; 
+      cursor: default;
+    }
+    .scroll-text { 
+      display: inline-block; 
+      padding-left: 100%; 
+      animation: marquee 35s linear infinite; 
+      color: var(--lol-gold); 
+      font-size: 1.1rem; /* 字體稍大一點 */
+      font-weight: bold; 
+      line-height: 2.5rem; /* 配合字體增加高度 */
+    }
+    /* 鼠標停留暫停動畫 */
+    .scroll-container:hover .scroll-text {
+      animation-play-state: paused;
+    }
+    @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+  </style>
+</head>
+<body class="min-h-screen relative">
+
+  <audio id="lol-click-sound" preload="auto">
+    <source src="https://raw.githubusercontent.com/yangmemory/lol-timer/main/click.mp3" type="audio/mpeg">
+  </audio>
+
+  <div id="lang-menu-btn" onclick="toggleLangPanel()">
+    <span style="font-size: 22px;">⚙️</span>
+  </div>
+  <div id="lang-panel">
+    <div class="lang-item" onclick="changeLang('zh')" id="lang-zh">🇨🇳 简中</div>
+    <div class="lang-item" onclick="changeLang('tw')" id="lang-tw">🇭🇰 繁中</div>
+    <div class="lang-item" onclick="changeLang('en')" id="lang-en">🇺🇸 EN</div>
+    <div class="lang-item" onclick="changeLang('ja')" id="lang-ja">🇯🇵 日本</div>
+    <div class="lang-item" onclick="changeLang('ko')" id="lang-ko">🇰🇷 한국</div>
+  </div>
+
+  <div class="scroll-container mb-8">
+    <div id="marquee-text" class="scroll-text"></div>
+  </div>
+
+  <div class="max-w-6xl mx-auto p-4">
+    <header class="text-center mb-10">
+      <h1 id="main-title" class="text-3xl font-bold mb-2 lol-special-font text-[#c89b3c] tracking-[0.2em]"></h1>
+      <div class="h-[1.5px] w-48 bg-gradient-to-r from-transparent via-[#c89b3c] to-transparent mx-auto mb-2 opacity-80"></div>
+      <p class="text-[#a09b8c] text-[10px] italic tracking-[0.3em] uppercase opacity-70 lol-special-font">Justice Will Be Served</p>
+    </header>
+
+    <div class="hextech-card p-4 md:p-8 mb-10">
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6">
+        <div class="flex flex-col">
+          <label id="lbl-acc" class="text-base text-[#c89b3c] mb-2 uppercase font-black text-center tracking-widest">召喚師帳號</label>
+          <div class="input-group"><input id="account" placeholder="SUMMONER NAME" /></div>
+        </div>
+        <div class="flex flex-col">
+          <label id="lbl-type" class="text-base text-[#c89b3c] mb-2 uppercase font-black text-center tracking-widest">處罰類型</label>
+          <div class="flex h-[52px] border border-[#463714] overflow-hidden">
+            <div class="flex-1 flex items-center justify-center cursor-pointer font-bold text-sm transition-all" id="type-ban" onclick="setType('解禁')"></div>
+            <div class="flex-1 flex items-center justify-center cursor-pointer font-bold text-sm transition-all border-l border-[#463714]" id="type-app" onclick="setType('申述')"></div>
+          </div>
+        </div>
+        <div class="flex flex-col">
+          <label id="lbl-date" class="text-base text-[#c89b3c] mb-2 uppercase font-black text-center tracking-widest">選擇日期</label>
+          <div class="input-group"><input id="date" type="date" /></div>
+        </div>
+        <div class="flex flex-col">
+          <label id="lbl-time" class="text-base text-[#c89b3c] mb-2 uppercase font-black text-center tracking-widest">具體時間</label>
+          <div class="input-group"><input id="time" type="text" placeholder="16:30" maxlength="5" oninput="this.value = this.value.replace(/[^\d]/g, '').replace(/(\d{2})(?=\d)/, '$1:')" /></div>
+        </div>
+        <div class="flex items-end"><button onclick="addRecord()" id="btn-add" class="btn-play-style w-full h-[52px] text-xl font-black tracking-[0.2em]"></button></div>
+      </div>
+      <div class="flex flex-wrap gap-4 md:gap-16 mt-8 pt-6 border-t border-[#1e2328] text-sm md:text-base font-black uppercase justify-center tracking-widest">
+        <button onclick="exportData()" id="btn-exp" class="text-[#c89b3c] hover:text-white transition-colors"></button>
+        <label id="btn-imp-lbl" class="text-[#c89b3c] hover:text-white cursor-pointer transition-colors"></label>
+        <input type="file" id="importFile" class="hidden" onchange="importData(this)">
+      </div>
+    </div>
+
+    <div class="flex flex-col md:flex-row gap-4 mb-10 items-center">
+      <div class="relative flex-1 w-full">
+        <input id="search" oninput="render()" class="w-full p-4 bg-[#010a13] border border-[#1e2328] italic text-[#f0e6d2] text-lg focus:border-[#c89b3c] outline-none text-center" />
+      </div>
+      <button onclick="toggleSort()" class="btn-play-style px-8 h-[58px] text-sm font-black tracking-widest min-w-[160px]">
+        <span id="sort-lbl"></span>：<span id="sort-val"></span>
+      </button>
+    </div>
+
+    <div id="list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+  </div>
+
+<script>
+function playClickSound() {
+  const sound = document.getElementById('lol-click-sound');
+  sound.currentTime = 0;
+  sound.play().catch(e => {});
+}
+
+function toggleLangPanel() {
+  playClickSound();
+  const panel = document.getElementById('lang-panel');
+  panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+}
+
+const i18n = {
+  zh: {
+    title: "英雄联盟禁令管理系统",
+    marquee: "🛡️ 抵制外挂，共建公平竞技环境。 ⚖️ 虚假的胜利毫无意义，真实的竞技才是荣耀。 ⚔️ 凭实力赢下的比赛，才是召唤师真正的尊严。 🚫 莫让脚本抹黑你的操作，莫让封号终结你的英雄路！",
+    acc: "召唤师账号", type: "处罚类型", date: "选择日期", time: "具体时间",
+    ban: "账号解禁", app: "发起申述", add: "录入系统", exp: "📥 下载备份数据", imp: "📤 上传备份数据",
+    search: "🔍 搜索召唤师记录...", sort: "排序", recent: "最近到期", far: "最远到期",
+    target: "目标时刻", finished: "流程结束", edit: "修改", del: "移除",
+    confImp: "确认导入备份？", confDel: "确定要移除此记录吗？", alertFill: "请填写账号和日期", day: "天"
+  },
+  tw: {
+    title: "英雄聯盟禁令管理系統",
+    marquee: "🛡️ 抵制外掛，共建公平競技環境。 ⚖️ 虛假的勝利毫無意義，真實的競技才是榮耀。 ⚔️ 憑實力贏下的比賽，才是召喚師真正的尊嚴。 🚫 莫讓腳本抹黑你的操作，莫讓封號終結你的英雄路！",
+    acc: "召喚師帳號", type: "處罰類型", date: "選擇日期", time: "具體時間",
+    ban: "帳號解禁", app: "發起申述", add: "錄入系統", exp: "📥 下載備份數據", imp: "📤 上傳備份數據",
+    search: "🔍 搜尋召喚師記錄...", sort: "排序", recent: "最近到期", far: "最遠到期",
+    target: "目標時刻", finished: "流程結束", edit: "修改", del: "移除",
+    confImp: "確認匯入備份？", confDel: "確定要移除此記錄嗎？", alertFill: "請填寫帳號和日期", day: "天"
+  },
+  en: {
+    title: "LOL Ban Manager System",
+    marquee: "🛡️ Resist cheats, build a fair environment. ⚖️ Fake victory is meaningless, true skill is glory. ⚔️ Wins by real strength are the summoner's pride. 🚫 Don't let scripts tarnish your play!",
+    acc: "Summoner Account", type: "Type", date: "Select Date", time: "Specific Time",
+    ban: "Unban", app: "Appeal", add: "Submit", exp: "📥 Export Data", imp: "📤 Import Data",
+    search: "🔍 Search Records...", sort: "Sort", recent: "Earliest", far: "Latest",
+    target: "Target Time", finished: "FINISHED", edit: "Edit", del: "Remove",
+    confImp: "Import backup?", confDel: "Remove this record?", alertFill: "Please fill in Account and Date", day: "Day"
+  },
+  ja: {
+    title: "リーグ・オブ・レジェンド制裁管理システム",
+    marquee: "🛡️ チートを防止し、公平な競技環境を。 ⚖️ 偽りの勝利に意味はなく、真の技術こそが栄光である。 ⚔️ 実力で掴んだ勝利こそ、サモナーの真の誇り。 🚫 スクリプトで自分のプレイを汚さないで！",
+    acc: "サモナー名", type: "制裁種類", date: "日付選択", time: "詳細時間",
+    ban: "解除予定", app: "異議申し立て", add: "システム登録", exp: "📥 バックアップ出力", imp: "📤 バックアップ読込",
+    search: "🔍 サモナー検索...", sort: "並び替え", recent: "期限間近", far: "期限遠い",
+    target: "目標時刻", finished: "処理完了", edit: "編集", del: "削除",
+    confImp: "バックアップを読み込みますか？", confDel: "この記録を削除しますか？", alertFill: "サモナー名と日付を入力してください", day: "日"
+  },
+  ko: {
+    title: "리그 오브 레전드 제재 관리",
+    marquee: "🛡️ 핵 사용을 반대하며, 공정한 경쟁 환경을 만듭시다. ⚖️ 거짓된 승리는 의미가 없으며, 진정한 실력이 영광입니다. ⚔️ 정정당당한 승부만이 소환사의 자부심입니다.",
+    acc: "소환사 계정", type: "처분 유형", date: "날짜 선택", time: "상세 시간",
+    ban: "해제 예정", app: "이의 신청", add: "기록 등록", exp: "📥 데이터 내보내기", imp: "📤 데이터 불러오기",
+    search: "🔍 소환사 검색...", sort: "정렬", recent: "가까운 시일", far: "먼 시일",
+    target: "목표 시간", finished: "처리 완료", edit: "수정", del: "삭제",
+    confImp: "백업을 불러오시겠습니까?", confDel: "이 기록을 삭제하시겠습니까?", alertFill: "계정과 날짜를 입력해주세요", day: "일"
+  }
+};
+
+let currentLang = localStorage.getItem('lolLang') || 'zh';
+let records = JSON.parse(localStorage.getItem('lolRecords') || '[]');
+let sortAsc = true; 
+let editIndex = null;
+let currentType = '解禁';
+
+function changeLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('lolLang', lang);
+  document.getElementById('lang-panel').style.display = 'none';
+  updateUI();
+}
+
+function setType(type) {
+  playClickSound();
+  currentType = type;
+  document.getElementById('type-ban').style.background = type === '解禁' ? '#c89b3c' : 'transparent';
+  document.getElementById('type-ban').style.color = type === '解禁' ? '#010a13' : '#c89b3c';
+  document.getElementById('type-app').style.background = type === '申述' ? '#c89b3c' : 'transparent';
+  document.getElementById('type-app').style.color = type === '申述' ? '#010a13' : '#c89b3c';
+}
+
+function updateUI() {
+  const t = i18n[currentLang];
+  document.querySelectorAll('.lang-item').forEach(el => el.classList.remove('active'));
+  document.getElementById(`lang-${currentLang}`).classList.add('active');
+  document.getElementById('main-title').innerText = t.title;
+  document.getElementById('marquee-text').innerText = t.marquee;
+  document.getElementById('lbl-acc').innerText = t.acc;
+  document.getElementById('lbl-type').innerText = t.type;
+  document.getElementById('lbl-date').innerText = t.date;
+  document.getElementById('lbl-time').innerText = t.time;
+  document.getElementById('type-ban').innerText = t.ban;
+  document.getElementById('type-app').innerText = t.app;
+  document.getElementById('btn-add').innerText = t.add;
+  document.getElementById('btn-exp').innerText = t.exp;
+  document.getElementById('btn-imp-lbl').innerText = t.imp;
+  document.getElementById('search').placeholder = t.search;
+  document.getElementById('sort-lbl').innerText = t.sort;
+  document.getElementById('sort-val').innerText = sortAsc ? t.recent : t.far;
+  setType(currentType);
+  render();
+}
+
+function toggleSort() {
+  playClickSound();
+  sortAsc = !sortAsc;
+  updateUI();
+}
+
+function render() {
+  const t = i18n[currentLang];
+  const q = document.getElementById('search').value.toLowerCase();
+  const box = document.getElementById('list');
+  const now = Date.now();
+  box.innerHTML = '';
+
+  let list = records.map((r, i) => ({...r, originalIdx: i}))
+                   .filter(r => r.account.toLowerCase().includes(q))
+                   .sort((a, b) => sortAsc ? new Date(a.datetime) - new Date(b.datetime) : new Date(b.datetime) - new Date(a.datetime));
+
+  list.forEach((r, i) => {
+    const diff = new Date(r.datetime).getTime() - now;
+    const isExpired = diff <= 0;
+    const d = Math.floor(diff/86400000);
+    const h = String(Math.floor(Math.max(0, diff%86400000/3600000))).padStart(2, '0');
+    const m = String(Math.floor(Math.max(0, diff%3600000/60000))).padStart(2, '0');
+    const s = String(Math.floor(Math.max(0, diff%60000/1000))).padStart(2, '0');
+
+    box.innerHTML += `
+      <div class="p-6 md:p-8 hextech-card relative overflow-hidden">
+        <div class="flex flex-col md:flex-row justify-between items-center relative z-10 text-center">
+          <div class="flex-1">
+            <div class="flex items-center justify-center gap-6 mb-4">
+              <span class="px-5 py-1.5 bg-[#c89b3c] text-[#010a13] text-[13px] font-black italic shadow-md uppercase">${r.type === '解禁' ? t.ban : t.app}</span>
+              <span class="text-[#f0e6d2] font-black text-2xl tracking-tighter">${r.account}</span>
+            </div>
+            <div class="text-base text-[#a09b8c] mb-6 font-black uppercase tracking-[0.2em]">${t.target}：<span class="text-[#f0e6d2]">${r.datetime.replace('T',' ')}</span></div>
+            <div class="flex flex-col items-center">
+              <div class="lol-timer-red font-black italic flex items-center justify-center">
+                ${isExpired ? 
+                  `<span class="text-green-500 text-3xl font-bold">${t.finished}</span>` : 
+                  `<span class="warn-icon-red text-3xl">!</span>
+                   <span class="text-4xl leading-none">${d}</span>
+                   <span class="text-sm ml-1 self-end mb-1">${t.day}</span>
+                   <span class="text-3xl tracking-widest leading-none ml-2">${h}:${m}:${s}</span>`
+                }
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-row md:flex-col gap-4 mt-6 md:mt-0 md:ml-8">
+            <button onclick="edit(${r.originalIdx})" class="btn-play-style px-6 md:px-10 py-3 text-sm font-black uppercase tracking-widest">${t.edit}</button>
+            <button onclick="del(${r.originalIdx})" class="btn-danger-style px-6 md:px-10 py-3 text-sm font-black uppercase tracking-widest">${t.del}</button>
+          </div>
+        </div>
+      </div>`;
+  });
+}
+
+function addRecord() {
+  playClickSound();
+  const t = i18n[currentLang];
+  const account = document.getElementById('account').value.trim();
+  const date = document.getElementById('date').value;
+  let time = document.getElementById('time').value || "00:00";
+  if(!account || !date) return alert(t.alertFill);
+  const data = { account, type: currentType, datetime: `${date}T${time}` };
+  if(editIndex !== null) { records[editIndex] = data; editIndex = null; } else { records.push(data); }
+  localStorage.setItem('lolRecords', JSON.stringify(records));
+  render();
+  document.getElementById('account').value = ''; document.getElementById('date').value = ''; document.getElementById('time').value = '';
+}
+
+function del(i) { 
+  playClickSound();
+  if(confirm(i18n[currentLang].confDel)) {
+    records.splice(i, 1);
+    localStorage.setItem('lolRecords', JSON.stringify(records));
+    render();
+  } 
+}
+
+function edit(i) { 
+  playClickSound();
+  const r = records[i]; const dt = r.datetime.split('T');
+  document.getElementById('account').value = r.account; 
+  setType(r.type);
+  document.getElementById('date').value = dt[0]; document.getElementById('time').value = dt[1] === "00:00" ? "" : dt[1];
+  editIndex = i; window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function exportData() { playClickSound(); if(records.length===0) return; const blob = new Blob([JSON.stringify(records, null, 2)], {type:"application/json"}); const a = document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="LOL_REPORT.json"; a.click(); }
+function importData(input) { playClickSound(); const reader = new FileReader(); reader.onload=(e)=>{ records=JSON.parse(e.target.result); localStorage.setItem('lolRecords', JSON.stringify(records)); updateUI(); }; reader.readAsText(input.files[0]); }
+
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('lang-panel');
+  const btn = document.getElementById('lang-menu-btn');
+  if (panel.style.display === 'block' && !panel.contains(e.target) && !btn.contains(e.target)) {
+    panel.style.display = 'none';
+  }
+});
+
+updateUI();
+setInterval(render, 1000);
+</script>
+</body>
+</html>
