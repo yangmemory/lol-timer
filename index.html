@@ -25,9 +25,9 @@
 
   <div class="max-w-5xl mx-auto p-6">
     <header class="text-center mb-10">
-      <h1 class="text-3xl font-bold mb-2 tracking-[0.2em] text-[#c8aa6e]">召唤师云端同步系统</h1>
+      <h1 class="text-3xl font-bold mb-2 tracking-[0.2em] text-[#c8aa6e]">召唤师处罚管理系统</h1>
       <div class="h-[2px] w-32 bg-gradient-to-r from-transparent via-[#c8aa6e] to-transparent mx-auto mb-2"></div>
-      <p id="syncStatus" class="text-[#a09b8c] text-sm italic">正在检查云端状态...</p>
+      <p class="text-[#a09b8c] text-sm italic">本地安全存储版 · 数据永不上传</p>
     </header>
 
     <div class="hextech-card p-6 rounded-sm mb-8 border-b-2 border-b-[#c8aa6e]">
@@ -52,14 +52,16 @@
           <input id="time" type="text" placeholder="16:30" maxlength="5" oninput="this.value = this.value.replace(/[^\d]/g, '').replace(/(\d{2})(?=\d)/, '$1:')" class="p-2 rounded-sm font-mono text-center" />
         </div>
         <div class="flex items-end">
-          <button onclick="addRecord()" class="btn-lol w-full py-2 font-bold text-sm">保存并同步</button>
+          <button onclick="addRecord()" class="btn-lol w-full py-2 font-bold text-sm">保存记录</button>
         </div>
       </div>
 
       <div class="flex gap-6 mt-6 pt-4 border-t border-[#463714] text-[11px]">
-        <button onclick="syncFromCloud()" class="text-[#c8aa6e] hover:text-white transition-colors">☁️ 手动从云端下载</button>
-        <button onclick="syncToCloud()" class="text-[#c8aa6e] hover:text-white transition-colors">☁️ 手动强制覆盖云端</button>
-        <span class="text-gray-600 ml-auto">账户: yangmemory | 仓库: lol-timer</span>
+        <button onclick="exportData()" class="text-[#c8aa6e] hover:text-white transition-colors">📥 导出备份 (下载 JSON 文件)</button>
+        <label class="text-[#c8aa6e] hover:text-white cursor-pointer transition-colors">
+          📤 导入备份 (上传 JSON 文件) <input type="file" id="importFile" class="hidden" onchange="importData(this)">
+        </label>
+        <span class="text-gray-600 ml-auto">数据仅保存在当前浏览器，请定期备份</span>
       </div>
     </div>
 
@@ -71,79 +73,48 @@
   </div>
 
 <script>
-// --- 配置信息 ---
-const GITHUB_CONFIG = {
-    token: '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',
-    repo: 'yangmemory/lol-timer',
-    path: 'data.json'
-};
-
 let records = JSON.parse(localStorage.getItem('lolRecords') || '[]');
 let editIndex = null;
-
-// 初始化：页面打开时自动从云端拉取一次
-window.onload = () => {
-    syncFromCloud();
-};
 
 function format24h(isoStr) {
     const d = new Date(isoStr);
     return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-// 从云端下载数据
-async function syncFromCloud() {
-    document.getElementById('syncStatus').innerText = "正在从云端拉取数据...";
-    try {
-        const res = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}?nocache=${new Date().getTime()}`, {
-            headers: { 'Authorization': `token ${GITHUB_CONFIG.token}` }
-        });
-        if (res.ok) {
-            const data = await res.json();
-            const content = decodeURIComponent(escape(atob(data.content)));
-            records = JSON.parse(content);
-            localStorage.setItem('lolRecords', JSON.stringify(records));
-            render();
-            document.getElementById('syncStatus').innerText = "云端同步成功";
-        }
-    } catch (err) {
-        document.getElementById('syncStatus').innerText = "云端拉取失败";
-        console.error(err);
-    }
+// 导出 JSON
+function exportData() {
+    if(records.length === 0) return alert('没有数据可以导出');
+    const dataStr = JSON.stringify(records, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `LOL_数据备份_${new Date().toLocaleDateString()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
-// 同步到云端
-async function syncToCloud() {
-    document.getElementById('syncStatus').innerText = "正在同步到云端...";
-    try {
-        // 获取文件 SHA
-        const getRes = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`, {
-            headers: { 'Authorization': `token ${GITHUB_CONFIG.token}` }
-        });
-        const getData = await getRes.json();
-        const sha = getData.sha;
-
-        // 上传新内容
-        const content = btoa(unescape(encodeURIComponent(JSON.stringify(records))));
-        const putRes = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `token ${GITHUB_CONFIG.token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                message: "update records",
-                content: content,
-                sha: sha
-            })
-        });
-
-        if (putRes.ok) {
-            document.getElementById('syncStatus').innerText = "所有更改已保存至云端";
+// 导入 JSON
+function importData(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const imported = JSON.parse(e.target.result);
+            if (Array.isArray(imported)) {
+                if(confirm('导入将覆盖当前所有数据，确定吗？')) {
+                    records = imported;
+                    localStorage.setItem('lolRecords', JSON.stringify(records));
+                    render();
+                    alert('导入成功！');
+                }
+            }
+        } catch (err) {
+            alert('文件格式错误！');
         }
-    } catch (err) {
-        document.getElementById('syncStatus').innerText = "同步失败，请检查网络";
-    }
+    };
+    reader.readAsText(file);
 }
 
 function addRecord(){
@@ -152,7 +123,7 @@ function addRecord(){
   const date = document.getElementById('date').value;
   let time = document.getElementById('time').value;
 
-  if(!account || !date || !time) return alert('召唤师，请完善处罚信息');
+  if(!account || !date || !time) return alert('请填全信息');
   
   const data = { account, type, datetime: `${date}T${time}` };
 
@@ -160,83 +131,4 @@ function addRecord(){
     records[editIndex] = data;
     editIndex = null;
   }else{
-    records.push(data);
-  }
-  
-  localStorage.setItem('lolRecords', JSON.stringify(records));
-  render();
-  syncToCloud(); // 添加/修改后自动同步
-  
-  document.getElementById('account').value = '';
-  document.getElementById('date').value = '';
-  document.getElementById('time').value = '';
-}
-
-function del(i){
-  if(confirm('确定要移除此项处罚记录吗？')) {
-    records.splice(i,1);
-    localStorage.setItem('lolRecords', JSON.stringify(records));
-    render();
-    syncToCloud(); // 删除后自动同步
-  }
-}
-
-function edit(i){
-  const r = records[i];
-  const dt = r.datetime.split('T');
-  document.getElementById('account').value = r.account;
-  document.getElementById('type').value = r.type;
-  document.getElementById('date').value = dt[0];
-  document.getElementById('time').value = dt[1];
-  editIndex = i;
-  window.scrollTo({top: 0, behavior: 'smooth'});
-}
-
-function render(){
-  const q = document.getElementById('search').value.toLowerCase();
-  const now = Date.now();
-  const box = document.getElementById('list');
-  box.innerHTML='';
-
-  records.filter(r=>r.account.toLowerCase().includes(q))
-    .sort((a,b)=>new Date(a.datetime)-new Date(b.datetime))
-    .forEach((r,i)=>{
-      const targetTime = new Date(r.datetime).getTime();
-      const diff = targetTime - now;
-      const displayDateTime = format24h(r.datetime);
-      const days = Math.floor(diff/86400000);
-      const h = Math.floor(diff%86400000/3600000);
-      const m = Math.floor(diff%3600000/60000);
-      const s = Math.floor(diff%60000/1000);
-      const isWarning = diff < 3 * 86400000 && diff > 0;
-      const isExpired = diff <= 0;
-
-      box.innerHTML += `
-      <div class="p-5 hextech-card relative overflow-hidden ${isWarning ? 'status-active' : ''}">
-        <div class="flex justify-between items-start relative z-10">
-          <div>
-            <div class="flex items-center gap-2 mb-1">
-              <span class="px-2 py-0.5 bg-[#c8aa6e] text-black text-[10px] font-bold rounded-sm">${r.type}</span>
-              <span class="text-[#f0e6d2] font-bold text-lg">${r.account}</span>
-            </div>
-            <div class="text-[11px] text-[#a09b8c] mb-3 font-mono">目标时间：${displayDateTime}</div>
-            <div class="flex flex-col">
-              <span class="text-[10px] text-[#c8aa6e] uppercase tracking-tighter mb-1">距离解禁还有</span>
-              <span class="text-xl font-bold ${isExpired ? 'text-green-500' : 'text-[#f0e6d2]'}">
-                ${isExpired ? '✅ 处罚已解除' : `${days}天 ${h}时 ${m}分 ${s}秒`}
-              </span>
-            </div>
-          </div>
-          <div class="flex flex-col space-y-2">
-            <button onclick="edit(${i})" class="px-3 py-1 text-[11px] border border-[#c8aa6e] text-[#c8aa6e] hover:bg-[#c8aa6e] hover:text-black transition-all">修改</button>
-            <button onclick="del(${i})" class="px-3 py-1 text-[11px] border border-red-900 text-red-500 hover:bg-red-900 hover:text-white transition-all">移除</button>
-          </div>
-        </div>
-      </div>`;
-    });
-}
-
-setInterval(render, 1000);
-</script>
-</body>
-</html>
+    records.push
