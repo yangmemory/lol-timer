@@ -1,120 +1,134 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-Hans">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LOL 解禁 / 申述倒计时</title>
+  <title>英雄联盟 解禁 / 申述 倒计时</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes pulseRed {
+      0%, 100% { background-color: #fee2e2; }
+      50% { background-color: #fecaca; }
+    }
+    .danger {
+      animation: pulseRed 1.5s infinite;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-100 min-h-screen p-4">
 
-  <!-- 页头 -->
-  <header class="bg-gradient-to-r from-yellow-400 to-orange-400 text-white p-5 text-center shadow">
-    <h1 class="text-2xl font-bold">英雄联盟 解禁 / 申述时间管理</h1>
-    <p class="mt-2 text-sm opacity-90">公平游戏，才能让胜利更有意义 🎮</p>
+  <header class="text-center mb-6">
+    <h1 class="text-2xl font-bold mb-2">英雄联盟 解禁 / 申述 倒计时</h1>
+    <p class="text-gray-600">公平游戏，才能让胜利更有意义 🎮</p>
   </header>
 
-  <main class="max-w-5xl mx-auto p-4">
+  <!-- 表单 -->
+  <div class="bg-white p-4 rounded shadow mb-6">
+    <h2 class="font-semibold mb-3">新增 / 编辑记录</h2>
+    <form id="recordForm" class="grid grid-cols-1 md:grid-cols-5 gap-3">
+      <input type="hidden" id="editIndex" />
+      <input id="name" placeholder="账号 / 昵称" class="border p-2 rounded" required />
+      <select id="type" class="border p-2 rounded">
+        <option value="解禁">解禁</option>
+        <option value="申述">申述</option>
+      </select>
+      <input id="date" type="date" class="border p-2 rounded" required />
+      <input id="time" type="time" class="border p-2 rounded" required />
+      <button class="bg-blue-600 text-white rounded px-4">保存</button>
+    </form>
+  </div>
 
-    <!-- 添加表单 -->
-    <section class="bg-white rounded-xl shadow p-4 mb-6">
-      <h2 class="font-semibold mb-3">添加记录</h2>
-      <form id="addForm" class="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <input required id="name" placeholder="账号 / 昵称" class="border p-2 rounded" />
-        <input required id="date" type="datetime-local" class="border p-2 rounded" />
-        <select id="type" class="border p-2 rounded">
-          <option value="解禁">解禁</option>
-          <option value="申述">申述</option>
-        </select>
-        <button class="bg-blue-500 text-white rounded p-2 hover:bg-blue-600">添加</button>
-      </form>
-    </section>
+  <!-- 搜索 -->
+  <input id="search" placeholder="搜索账号 / 昵称" class="w-full p-2 mb-4 border rounded" />
 
-    <!-- 搜索 -->
-    <div class="mb-4">
-      <input id="search" placeholder="搜索账号 / 昵称" class="w-full border p-2 rounded" />
-    </div>
-
-    <!-- 数据列表 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="list"></div>
-
-  </main>
+  <!-- 列表 -->
+  <div id="list" class="space-y-3"></div>
 
 <script>
-let data = JSON.parse(localStorage.getItem('lolData') || '[]');
+let records = JSON.parse(localStorage.getItem('records') || '[]');
 
+const form = document.getElementById('recordForm');
 const list = document.getElementById('list');
-const form = document.getElementById('addForm');
 const search = document.getElementById('search');
 
-function save() {
-  localStorage.setItem('lolData', JSON.stringify(data));
-}
+form.onsubmit = e => {
+  e.preventDefault();
+  const record = {
+    name: name.value,
+    type: type.value,
+    datetime: `${date.value}T${time.value}`
+  };
 
-function diffText(target) {
-  const now = new Date();
-  const diff = target - now;
-  if (diff <= 0) return '已到期';
-  const d = Math.floor(diff / 86400000);
-  const h = Math.floor(diff % 86400000 / 3600000);
-  const m = Math.floor(diff % 3600000 / 60000);
-  const s = Math.floor(diff % 60000 / 1000);
-  return `${d}天 ${h}小时 ${m}分 ${s}秒`;
-}
+  const index = editIndex.value;
+  if (index === '') records.push(record);
+  else records[index] = record;
+
+  localStorage.setItem('records', JSON.stringify(records));
+  form.reset();
+  editIndex.value = '';
+  render();
+};
 
 function render() {
   list.innerHTML = '';
-  const keyword = search.value.toLowerCase();
+  const keyword = search.value.trim();
 
-  data.filter(i => i.name.toLowerCase().includes(keyword)).forEach((item, index) => {
-    const target = new Date(item.date);
-    const diff = target - new Date();
-    const danger = diff < 7 * 86400000 && diff > 0;
+  records
+    .map((r, i) => ({...r, i}))
+    .filter(r => r.name.includes(keyword))
+    .sort((a, b) => new Date(a.datetime) - new Date(b.datetime))
+    .forEach(r => {
+      const end = new Date(r.datetime);
+      const now = new Date();
+      const diff = end - now;
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor(diff % 86400000 / 3600000);
+      const mins = Math.floor(diff % 3600000 / 60000);
+      const secs = Math.floor(diff % 60000 / 1000);
 
-    const card = document.createElement('div');
-    card.className = `rounded-xl shadow p-4 bg-white border-l-8 ${item.type === '解禁' ? 'border-green-400' : 'border-purple-400'}`;
+      const danger = diff < 7 * 86400000 && diff > 0;
 
-    card.innerHTML = `
-      <div class="flex justify-between items-start">
-        <div>
-          <h3 class="font-bold text-lg">${item.name}</h3>
-          <p class="text-sm text-gray-500">${item.type}</p>
-        </div>
-        <button onclick="removeItem(${index})" class="text-red-500 text-sm">删除</button>
-      </div>
-      <p class="mt-2 text-sm">到期时间：${target.toLocaleString()}</p>
-      <p class="mt-3 font-mono text-lg ${danger ? 'text-red-500 animate-pulse' : 'text-blue-600'}">${diffText(target)}</p>
-    `;
+      const div = document.createElement('div');
+      div.className = `p-4 rounded shadow bg-white ${danger ? 'danger' : ''}`;
 
-    list.appendChild(card);
-  });
+      div.innerHTML = `
+        <div class="flex justify-between items-center">
+          <div>
+            <span class="font-bold">${r.name}</span>
+            <span class="ml-2 px-2 py-1 text-xs rounded ${r.type==='解禁'?'bg-green-200':'bg-purple-200'}">${r.type}</span>
+            <div class="text-sm text-gray-600">${r.datetime.replace('T',' ')}</div>
+            <div class="font-mono mt-1">剩余：${diff>0?`${days}天 ${hours}时 ${mins}分 ${secs}秒`:'已到期'}</div>
+          </div>
+          <div class="space-x-2">
+            <button onclick="edit(${r.i})" class="text-blue-600">编辑</button>
+            <button onclick="remove(${r.i})" class="text-red-600">删除</button>
+          </div>
+        </div>`;
+      list.appendChild(div);
+    });
 }
 
-function removeItem(index) {
+function edit(i) {
+  const r = records[i];
+  name.value = r.name;
+  type.value = r.type;
+  const [d, t] = r.datetime.split('T');
+  date.value = d;
+  time.value = t;
+  editIndex.value = i;
+}
+
+function remove(i) {
   if (confirm('确定要删除这条记录吗？')) {
-    data.splice(index, 1);
-    save();
+    records.splice(i, 1);
+    localStorage.setItem('records', JSON.stringify(records));
     render();
   }
 }
 
-form.onsubmit = e => {
-  e.preventDefault();
-  data.push({
-    name: name.value.trim(),
-    date: date.value,
-    type: type.value
-  });
-  save();
-  form.reset();
-  render();
-};
-
-search.oninput = render;
-
 setInterval(render, 1000);
+search.oninput = render;
 render();
 </script>
-
 </body>
 </html>
